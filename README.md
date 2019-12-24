@@ -1,4 +1,5 @@
-# esp_relay - управление блоком из 8-ми реле (эмулятор реле тут https://github.com/salara1960/relay_box)
+# esp_relay - управление блоком из 8-ми реле 
+(эмулятор реле тут https://github.com/salara1960/relay_box)
 
 esp32(DevKitC board) + ssd1306(i2c) : uart + sntp_server + udp_server + tls_server + log_server
 
