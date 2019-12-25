@@ -20,6 +20,8 @@
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "freertos/queue.h"
+#include "freertos/ringbuf.h"
+
 
 #include "driver/adc.h"
 #include "driver/gpio.h"
@@ -43,13 +45,18 @@
 #include "esp_vfs.h"
 #include "esp_vfs_fat.h"
 
+
 #ifdef SET_SERIAL
     #include <sys/fcntl.h>
     #include <sys/errno.h>
     #include <sys/unistd.h>
     #include <sys/select.h>
-    #include "esp_vfs_dev.h"
+//    #include "esp_vfs_dev.h"
     #include "driver/uart.h"
+
+    #include "esp_intr_alloc.h"
+    #include "hal/uart_types.h"
+    #include "soc/uart_caps.h"
 #endif
 
 #include <esp_intr_alloc.h>

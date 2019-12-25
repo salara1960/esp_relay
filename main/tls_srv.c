@@ -278,10 +278,16 @@ s_tls_flags flags = {
                     if (auk) {
                         evt.cmd = parser_json_str((const char *)buf);
                         if (evt.cmd) {
-                            if (xQueueSend(cmdq, (void *)&evt, (TickType_t)0) != pdPASS) {
-                                ESP_LOGE(TAGUS,"Error while sending to cmdq");
+                            if (serial_start) {
+                                if (xQueueSend(cmdq, (void *)&evt, (TickType_t)0) != pdPASS) {
+                                    ESP_LOGE(TAGUS,"Error while sending to cmdq");
+                                    free(evt.cmd);
+                                } else {
+                                    if (!wait_ack) wait_ack = get_tmr(wait_ack_def);
+                                }
                             } else {
-                                if (!wait_ack) wait_ack = get_tmr(wait_ack_def);
+                                free(evt.cmd);
+                                wait_ack = get_tmr(_100ms);
                             }
                         }
                         timeout = timeout_def;
@@ -321,39 +327,44 @@ s_tls_flags flags = {
             if (auth) {
                 vTaskDelay(100 / portTICK_RATE_MS);
 #ifdef SET_SERIAL
-                len = 0;
-                stk[0] = 0;
-                if (wait_ack) {
-                    if (xQueueReceive(ackq, &evt_ack, 10/portTICK_RATE_MS) == pdTRUE) {
-                        if (evt_ack.cmd != NULL) {
-                            ssd1306_clear_line(6);
-                            vTaskDelay(2 / portTICK_RATE_MS);
-                            dl = sprintf(stk, "%s", evt_ack.cmd);
-                            ssd1306_text_xy(stk, ssd1306_calcx(dl), 6);
-                            dl = sprintf(stk, "%s", evt_ack.cmd);
-                            free(evt_ack.cmd);
-                            evt_ack.cmd = NULL;
-                            //
-                            len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ipaddr\":\"%s\",\"Answer\":\"%s\"}\r\n",
-                                               cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr, stk);
-                            //
+                if (serial_start) {
+                    len = 0;
+                    stk[0] = 0;
+                    if (wait_ack) {
+                        if (xQueueReceive(ackq, &evt_ack, 10/portTICK_RATE_MS) == pdTRUE) {
+                            if (evt_ack.cmd != NULL) {
+                                ssd1306_clear_line(6);
+                                vTaskDelay(2 / portTICK_RATE_MS);
+                                dl = sprintf(stk, "%s", evt_ack.cmd);
+                                ssd1306_text_xy(stk, ssd1306_calcx(dl), 6);
+                                dl = sprintf(stk, "%s", evt_ack.cmd);
+                                free(evt_ack.cmd);
+                                evt_ack.cmd = NULL;
+                                //
+                                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ipaddr\":\"%s\",\"Answer\":\"%s\"}\r\n",
+                                                    cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr, stk);
+                                //
+                                wait_ack = 0;
+#ifdef SET_TIMEOUT60
+                                wait_time = time(NULL);
+#endif
+                                timeout = timeout_max;
+                                mbedtls_ssl_conf_read_timeout(&conf, timeout);
+                            }
+                        } else if (check_tmr(wait_ack)) {
                             wait_ack = 0;
+                            len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ipaddr\":\"%s\",\"Answer\":\"Timeout\"}\r\n",
+                                                cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
 #ifdef SET_TIMEOUT60
                             wait_time = time(NULL);
 #endif
                             timeout = timeout_max;
                             mbedtls_ssl_conf_read_timeout(&conf, timeout);
                         }
-                    } else if (check_tmr(wait_ack)) {
-                        wait_ack = 0;
-                        len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ipaddr\":\"%s\",\"Answer\":\"Timeout\"}\r\n",
-                                           cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
-#ifdef SET_TIMEOUT60
-                        wait_time = time(NULL);
-#endif
-                        timeout = timeout_max;
-                        mbedtls_ssl_conf_read_timeout(&conf, timeout);
                     }
+                } else {
+                    len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ipaddr\":\"%s\"}\r\n",
+                             cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
                 }
 #else
                 len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ipaddr\":\"%s\"}\r\n",

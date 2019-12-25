@@ -17,12 +17,13 @@
         char *cmd;
     } s_cmd;
 
+    extern uint8_t serial_start;
     extern const char *cmd[];
 
     extern const char *TAGUS;
 
     extern char *parser_json_str(const char *st);
-    extern void serial_init();
+    extern esp_err_t serial_init();
     extern void serial_task(void *arg);
 
 #endif

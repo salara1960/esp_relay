@@ -400,7 +400,7 @@ void app_main()
 
     total_task = 0;
 
-    vTaskDelay(2000 / portTICK_RATE_MS);
+    vTaskDelay(1500 / portTICK_RATE_MS);
 
     ets_printf("\nAppication version %s | SDK Version %s | FreeMem %u\n", Version, esp_get_idf_version(), xPortGetFreeHeapSize());
 
@@ -578,27 +578,6 @@ void app_main()
     }
 #endif
 
-/*
-#ifdef SET_WEB
-        web_port = WEB_PORT;
-        if (xTaskCreatePinnedToCore(&web_task, "web_task", STACK_SIZE_2K, &web_port, 6, NULL, 1) != pdPASS) {//10//7
-            #ifdef SET_ERROR_PRINT
-                ESP_LOGE(TAGWEB, "Create web_task failed | FreeMem %u", xPortGetFreeHeapSize());
-            #endif
-        }
-        vTaskDelay(1000 / portTICK_RATE_MS);
-#endif
-
-#ifdef SET_WS
-        ws_port = WS_PORT;
-        if (xTaskCreatePinnedToCore(&ws_task, "ws_task", STACK_SIZE_2K5, &ws_port, 6, NULL, 1) != pdPASS) {//8//10//7
-            #ifdef SET_ERROR_PRINT
-                ESP_LOGE(TAGWS, "Create ws_task failed | FreeMem %u", xPortGetFreeHeapSize());
-            #endif
-        }
-        vTaskDelay(1000 / portTICK_RATE_MS);
-#endif
-*/
 #ifdef SET_SSD1306
     i2c_ssd1306_init();
 
@@ -625,11 +604,16 @@ void app_main()
     cmdq = xQueueCreate(8, sizeof(s_cmd));//create cmd queue
     ackq = xQueueCreate(8, sizeof(s_cmd));//create ack queue
 
-    serial_init();
-    vTaskDelay(500 / portTICK_RATE_MS);
-    if (xTaskCreatePinnedToCore(&serial_task, "serial_task", STACK_SIZE_2K, NULL, 7, NULL, 0) != pdPASS) {//7
+    if (serial_init() == ESP_OK) {
+        vTaskDelay(500 / portTICK_RATE_MS);
+        if (xTaskCreatePinnedToCore(&serial_task, "serial_task", STACK_SIZE_2K, NULL, 7, NULL, 0) != pdPASS) {//7
+            #ifdef SET_ERROR_PRINT
+                ESP_LOGE(TAGUS, "Create serial_task failed | FreeMem %u", xPortGetFreeHeapSize());
+            #endif
+        }
+    } else {
         #ifdef SET_ERROR_PRINT
-            ESP_LOGE(TAGUS, "Create serial_task failed | FreeMem %u", xPortGetFreeHeapSize());
+            ESP_LOGE(TAGUS, "Error init serial port | FreeMem %u", xPortGetFreeHeapSize());
         #endif
     }
     vTaskDelay(500 / portTICK_RATE_MS);

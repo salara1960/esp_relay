@@ -4,6 +4,7 @@
 
 #include "main.h"
 
+uint8_t serial_start = 0;
 const char *cmd_name = "cmd";
 
 const char *TAGUS = "UART";
@@ -13,7 +14,7 @@ const int BSIZE = 256;
 
 //******************************************************************************************
 
-void serial_init()
+esp_err_t serial_init()
 {
 
     uart_config_t uart_conf = {
@@ -22,17 +23,21 @@ void serial_init()
         .parity    = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        //.rx_flow_ctrl_thresh = 122,
-//        .source_clk = UART_SCLK_APB,
+        .source_clk = UART_SCLK_APB,
     };
 
-    uart_driver_install(unum, BSIZE, 0, 0, NULL, 0);
+    esp_err_t ret = uart_driver_install(unum, BSIZE, 0, 0, NULL, 0);
+    if (ret != ESP_OK) return ret;
 
-    uart_param_config(unum, &uart_conf);
+    ret = uart_param_config(unum, &uart_conf);
+    if (ret != ESP_OK) return ret;
 
-    uart_set_pin(unum, GPIO_U2TXD, GPIO_U2RXD, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);//Set UART2 pins(TX, RX, RTS, CTS)
+    ret = uart_set_pin(unum, GPIO_U2TXD, GPIO_U2RXD, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);//Set UART2 pins(TX, RX, RTS, CTS)
+    if (ret != ESP_OK) return ret;
 
-    uart_flush(unum);
+    ret = uart_flush(unum);
+
+    return ret;
 }
 //-----------------------------------------------------------------------------------------
 char *get_json_str(cJSON *tp)
@@ -80,6 +85,7 @@ char *ret = NULL, *val = NULL;
 //-----------------------------------------------------------------------------------------
 void serial_task(void *arg)
 {
+serial_start = 1;
 total_task++;
 uint8_t out = 0, wait_ack = 0;
 size_t buf_len = BSIZE;
@@ -102,10 +108,10 @@ char *us = NULL;
             ESP_LOGE(TAGUS, "Cannot open UART. OutOfJob !\n");
             vTaskDelay(500 / portTICK_PERIOD_MS);
             out = 1;
-        } else {
+        }/* else {
             esp_vfs_dev_uart_use_driver(2);
             esp_vfs_dev_uart_use_nonblocking(2);
-        }
+        }*/
 
 
         int resa = 0, uk = 0, tmp = 0, recv = 0, rdy = 0;
@@ -189,6 +195,7 @@ char *us = NULL;
     }
 
     ets_printf("%s[%s] Stop serial_task | FreeMem %u%s\n", START_COLOR, TAGUS, xPortGetFreeHeapSize(), STOP_COLOR);
+    serial_start = 0;
     if (total_task) total_task--;
 
     vTaskDelete(NULL);
