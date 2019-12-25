@@ -23,7 +23,7 @@ void serial_init()
         .stop_bits = UART_STOP_BITS_1,
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
         //.rx_flow_ctrl_thresh = 122,
-        .source_clk = UART_SCLK_APB,
+//        .source_clk = UART_SCLK_APB,
     };
 
     uart_driver_install(unum, BSIZE, 0, 0, NULL, 0);
@@ -32,6 +32,7 @@ void serial_init()
 
     uart_set_pin(unum, GPIO_U2TXD, GPIO_U2RXD, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);//Set UART2 pins(TX, RX, RTS, CTS)
 
+    uart_flush(unum);
 }
 //-----------------------------------------------------------------------------------------
 char *get_json_str(cJSON *tp)
@@ -80,7 +81,7 @@ char *ret = NULL, *val = NULL;
 void serial_task(void *arg)
 {
 total_task++;
-uint8_t out = 0, waits = 0;
+uint8_t out = 0, wait_ack = 0;
 size_t buf_len = BSIZE;
 char stk[128];
 char stx[BSIZE];
@@ -106,30 +107,35 @@ char *us = NULL;
             esp_vfs_dev_uart_use_nonblocking(2);
         }
 
+
         int resa = 0, uk = 0, tmp = 0, recv = 0, rdy = 0;
         fd_set rfds;
         char cha;
         struct timeval tv = {
             .tv_sec  = 0,
-            .tv_usec = 15000
+            .tv_usec = 10000
         };
+
 
         while (!out) {
 
             if (xQueueReceive(cmdq, &evt, (TickType_t)0) == pdTRUE) {
                 if (evt.cmd != NULL) {
-                    dl = sprintf(stk,"%s", evt.cmd);
                     ssd1306_clear_line(5);
+                    vTaskDelay(2 / portTICK_PERIOD_MS);
+                    dl = sprintf(stk,"%s", evt.cmd);
                     ssd1306_text_xy(stk, ssd1306_calcx(dl), 5);
                     dl = sprintf(stk, "%s\r\n", evt.cmd);
                     free(evt.cmd);
                     evt.cmd = NULL;
                     if (dl > 2) {
                         if (write(fd, stk, dl) != dl) sprintf(stx, "[%u] Error Send(%d) : %s", ++txc, dl, stk);
-                                                 else sprintf(stx, "[%u] Send(%d) : %s", ++txc, dl, stk);
+                        else {
+                            wait_ack = 1;
+                            sprintf(stx, "[%u] Send(%d) : %s", ++txc, dl, stk);
+                        }
                         print_msg(TAGUS, NULL, stx, 1);
                     }
-                    waits = 1;
                 }
             }
 
@@ -139,15 +145,18 @@ char *us = NULL;
             if (resa > 0) {
                 if (FD_ISSET(fd, &rfds)) {
                     tmp = read(fd, &cha, 1);
-                    if ((tmp > 0) && waits) {
+                    if (tmp > 0) {
+//printf("%02X.", (uint8_t)cha);
                         *(data + uk) = cha;
                         recv += tmp;
                         uk   += tmp;
                         if ((us = strchr(data, '\n')) != NULL) {
-                            rdy = 1;
                             *us = '\0';
-                            if ((us = strchr(data, '\r')) != NULL) *us = '\0';
-                            recv = strlen(data);
+                            recv--;
+                            if (!recv) {
+                                memset(data, 0, buf_len);
+                                uk = tmp = 0;
+                            } else rdy = 1;
                         } else if (recv >= buf_len - 1) rdy = 1;
                     }
                 }
@@ -156,17 +165,18 @@ char *us = NULL;
             if (rdy) {
                 recv = strlen(data);
                 if (*(data + recv - 1) == '\r') { *(data + recv - 1) = '\0'; recv--; }
+//printf("\n");
                 sprintf(stx, "[%u] Recv(%d) : '%s'\n", ++rxc, recv, data);
                 print_msg(TAGUS, NULL, stx, 1);
-                if (recv > 0) {
+                if ((recv > 0) && wait_ack) {
                     evt_ack.cmd = (char *)calloc(1, recv + 1);
                     if (evt_ack.cmd) {
                         memcpy(evt_ack.cmd, data, recv);
                         if (xQueueSend(ackq, (void *)&evt_ack, (TickType_t)0) != pdPASS) {
                             ESP_LOGE(TAGUS,"Error while sending to ackq");
                         }
-                        waits = 0;
                     }
+                    wait_ack = 0;
                 }
                 memset(data, 0, buf_len);
                 uk = tmp = 0;

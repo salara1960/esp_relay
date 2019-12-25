@@ -607,7 +607,7 @@ void app_main()
 
     esp_err_t ssd_ok = ssd1306_init();
     if (ssd_ok == ESP_OK) ssd1306_pattern();
-    ssd1306_invert();
+    //ssd1306_invert();
     ssd1306_clear();
 
     scr_ini_done = true;
@@ -686,8 +686,8 @@ void app_main()
         }
 #endif
 
-#ifdef SET_SNTP
         if (wmode == WIFI_MODE_STA) {// WIFI_MODE_STA || WIFI_MODE_APSTA
+#ifdef SET_SNTP
             if (sntp_go) {
                 if (!sntp_start) {
                     sntp_go = 0;
@@ -699,11 +699,9 @@ void app_main()
                     vTaskDelay(500 / portTICK_RATE_MS);
                 } else vTaskDelay(50 / portTICK_RATE_MS);
             }
-        }
 #endif
 
 #ifdef UDP_SEND_BCAST
-        if (wmode == WIFI_MODE_STA) {
             if ((!udp_start) && (udp_flag == 1)) {
                 if (xTaskCreatePinnedToCore(&udp_task, "disk_task", STACK_SIZE_1K5, NULL, 5, NULL, 0) != pdPASS) {//5,NULL,1)
                 #ifdef SET_ERROR_PRINT
@@ -712,8 +710,8 @@ void app_main()
                 }
                 vTaskDelay(500 / portTICK_RATE_MS);
             }
-        }
 #endif
+        }
 
 
     }

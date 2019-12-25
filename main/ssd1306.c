@@ -422,7 +422,7 @@ void ssd1306_text(const char *stroka)
 //-----------------------------------------------------------------------------------------
 uint8_t ssd1306_calcx(int len)
 {
-uint8_t ret = 0;
+uint8_t ret = 1;
 
     if ( (len > 0) && (len < 16) ) ret = ((16 - len) >> 1) + 1;
 

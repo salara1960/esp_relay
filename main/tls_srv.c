@@ -77,7 +77,10 @@ mbedtls_net_context      server_ctx, client_ctx;
 int ret = 0, len = 0, err = 0, dl = 0;
 uint8_t auth = 0, eot = 0;
 uint32_t timeout = timeout_auth;
-time_t cur_time = 0, wait_time = 0;
+time_t cur_time = 0;
+#ifdef SET_TIMEOUT60
+    time_t wait_time = 0;
+#endif
 char *buf = NULL, *stx = NULL, *uk = NULL, *tbuf = NULL;
 char ts[64] = {0}, hash_str[256] = {0}, str_tls_port[8] = {0};
 char *auk = NULL;
@@ -220,7 +223,9 @@ s_tls_flags flags = {
         tls_hangup = 0;
         flags.first = 1;
         flags.first_send = 0;
+#ifdef SET_TIMEOUT60
         wait_time = time(NULL);
+#endif
         // Read loop
         while (!tls_hangup && !restart_flag) {
             //
@@ -245,7 +250,9 @@ s_tls_flags flags = {
             len = BUF_SIZE - 1;
             int rtr = mbedtls_ssl_read(&ssl, (unsigned char *)buf, len);
             if (rtr > 0) {
+#ifdef SET_TIMEOUT60
                 wait_time = time(NULL);
+#endif
                 uk = strstr(buf + 2, "\r\n"); if (uk) *uk = '\0';
                 sprintf(stx, "Recv. data (%d bytes) from client:%s\n", rtr, buf);
                 print_msg(TAGTLS, NULL, stx, 1);
@@ -293,14 +300,18 @@ s_tls_flags flags = {
                 err = rtr;
                 if (rtr == MBEDTLS_ERR_SSL_TIMEOUT) {// -0x6800 The operation timed out
                     if (auth) {
+#ifdef SET_TIMEOUT60
                         if ( ((uint32_t)time(NULL) - (uint32_t)wait_time) >= def_idle_count ) {
                             sprintf(stx, "Timeout...(no data from client %u sec). Server closed connection.\n", def_idle_count);
                             print_msg(TAGTLS, NULL, stx, 1);
                             break;
                         } else {
+#endif
                             timeout = timeout_def;
                             mbedtls_ssl_conf_read_timeout(&conf, timeout);
+#ifdef SET_TIMEOUT60
                         }
+#endif
                     } else break;
                 } else break;
             }
@@ -315,8 +326,9 @@ s_tls_flags flags = {
                 if (wait_ack) {
                     if (xQueueReceive(ackq, &evt_ack, 10/portTICK_RATE_MS) == pdTRUE) {
                         if (evt_ack.cmd != NULL) {
-                            dl = sprintf(stk, "%s", evt_ack.cmd);
                             ssd1306_clear_line(6);
+                            vTaskDelay(2 / portTICK_RATE_MS);
+                            dl = sprintf(stk, "%s", evt_ack.cmd);
                             ssd1306_text_xy(stk, ssd1306_calcx(dl), 6);
                             dl = sprintf(stk, "%s", evt_ack.cmd);
                             free(evt_ack.cmd);
@@ -326,7 +338,9 @@ s_tls_flags flags = {
                                                cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr, stk);
                             //
                             wait_ack = 0;
+#ifdef SET_TIMEOUT60
                             wait_time = time(NULL);
+#endif
                             timeout = timeout_max;
                             mbedtls_ssl_conf_read_timeout(&conf, timeout);
                         }
@@ -334,7 +348,9 @@ s_tls_flags flags = {
                         wait_ack = 0;
                         len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ipaddr\":\"%s\",\"Answer\":\"Timeout\"}\r\n",
                                            cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
+#ifdef SET_TIMEOUT60
                         wait_time = time(NULL);
+#endif
                         timeout = timeout_max;
                         mbedtls_ssl_conf_read_timeout(&conf, timeout);
                     }
@@ -377,7 +393,9 @@ exit:
             err = 0;
         }
         if (eot) break;
+#ifdef SET_TIMEOUT60
         wait_time = time(NULL);
+#endif
         timeout = timeout_auth;//30000 msec
         mbedtls_ssl_conf_read_timeout(&conf, timeout);
 

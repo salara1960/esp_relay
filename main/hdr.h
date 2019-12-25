@@ -7,3 +7,6 @@
 #define SET_TLS_SRV
 #define SET_ERROR_PRINT
 
+#ifdef SET_TLS_SRV
+    #undef SET_TIMEOUT60
+#endif
