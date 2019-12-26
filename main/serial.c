@@ -12,6 +12,9 @@ const int unum = UART_NUMBER;
 const int uspeed = UART_SPEED;
 const int BSIZE = 256;
 
+
+//******************************************************************************************
+//******************************************************************************************
 //******************************************************************************************
 
 esp_err_t serial_init()
@@ -26,7 +29,9 @@ esp_err_t serial_init()
         .source_clk = UART_SCLK_APB,
     };
 
-    esp_err_t ret = uart_driver_install(unum, BSIZE, 0, 0, NULL, 0);
+    esp_log_level_set(TAGUS, ESP_LOG_INFO);
+
+    esp_err_t ret = uart_driver_install(unum, BSIZE, BSIZE, 0, NULL, 0);
     if (ret != ESP_OK) return ret;
 
     ret = uart_param_config(unum, &uart_conf);
@@ -36,6 +41,9 @@ esp_err_t serial_init()
     if (ret != ESP_OK) return ret;
 
     ret = uart_flush(unum);
+    if (ret != ESP_OK) return ret;
+
+    ret = uart_flush_input(unum);
 
     return ret;
 }
@@ -103,25 +111,24 @@ char *us = NULL;
     char *data = (char *)calloc(1, buf_len + 1);
     if (data) {
 
+#ifdef SET_SELECT_MODE
         int fd = -1;
         if ((fd = open("/dev/uart/2", O_RDWR)) == -1) {
             ESP_LOGE(TAGUS, "Cannot open UART. OutOfJob !\n");
             vTaskDelay(500 / portTICK_PERIOD_MS);
             out = 1;
-        }/* else {
-            esp_vfs_dev_uart_use_driver(2);
-            esp_vfs_dev_uart_use_nonblocking(2);
-        }*/
+        }
 
-
-        int resa = 0, uk = 0, tmp = 0, recv = 0, rdy = 0;
         fd_set rfds;
         char cha;
         struct timeval tv = {
             .tv_sec  = 0,
             .tv_usec = 10000
         };
+        int resa = 0;
+#endif
 
+        int uk = 0, tmp = 0, recv = 0, rdy = 0;
 
         while (!out) {
 
@@ -135,8 +142,13 @@ char *us = NULL;
                     free(evt.cmd);
                     evt.cmd = NULL;
                     if (dl > 2) {
-                        if (write(fd, stk, dl) != dl) sprintf(stx, "[%u] Error Send(%d) : %s", ++txc, dl, stk);
-                        else {
+#ifdef SET_SELECT_MODE
+                        if (write(fd, stk, dl) != dl) {
+#else
+                        if (uart_write_bytes(unum, stk, dl) != dl) {
+#endif
+                          sprintf(stx, "[%u] Error Send(%d) : %s", ++txc, dl, stk);
+                        } else {
                             wait_ack = 1;
                             sprintf(stx, "[%u] Send(%d) : %s", ++txc, dl, stk);
                         }
@@ -144,7 +156,7 @@ char *us = NULL;
                     }
                 }
             }
-
+#ifdef SET_SELECT_MODE
             FD_ZERO(&rfds);
             FD_SET(fd, &rfds);
             resa = select(fd + 1, &rfds, NULL, NULL, &tv);
@@ -152,7 +164,6 @@ char *us = NULL;
                 if (FD_ISSET(fd, &rfds)) {
                     tmp = read(fd, &cha, 1);
                     if (tmp > 0) {
-//printf("%02X.", (uint8_t)cha);
                         *(data + uk) = cha;
                         recv += tmp;
                         uk   += tmp;
@@ -167,11 +178,24 @@ char *us = NULL;
                     }
                 }
             }
-
+#else
+            tmp = uart_read_bytes(unum, (uint8_t *)(data + uk), 1, TIME_READ);//5 msec
+            if (tmp > 0) {
+                recv += tmp;
+                uk   += tmp;
+                if ((us = strchr(data, '\n')) != NULL) {
+                    *us = '\0';
+                    recv--;
+                    if (!recv) {
+                        memset(data, 0, buf_len);
+                        uk = tmp = 0;
+                    } else rdy = 1;
+                } else if (recv >= buf_len - 1) rdy = 1;
+            }
+#endif
             if (rdy) {
                 recv = strlen(data);
                 if (*(data + recv - 1) == '\r') { *(data + recv - 1) = '\0'; recv--; }
-//printf("\n");
                 sprintf(stx, "[%u] Recv(%d) : '%s'\n", ++rxc, recv, data);
                 print_msg(TAGUS, NULL, stx, 1);
                 if ((recv > 0) && wait_ack) {
@@ -189,8 +213,9 @@ char *us = NULL;
                 recv = rdy = 0;
             }
         }//while(!out)
-
+#ifdef SET_SELECT_MODE
         if (fd > 0) close(fd);
+#endif
         free(data);
     }
 

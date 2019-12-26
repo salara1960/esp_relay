@@ -5,6 +5,10 @@
 
 #ifdef SET_SERIAL
 
+
+    #define TIME_READ        (5 / portTICK_RATE_MS)
+
+
     #define GPIO_U2TXD 17 //pin17 - U2TXD
     #define GPIO_U2RXD 16 //pin16 - U2RXD
     #define UART_NUMBER UART_NUM_2

@@ -11,3 +11,6 @@
     #undef SET_TIMEOUT60
 #endif
 
+#ifdef SET_SERIAL
+    #undef SET_SELECT_MODE
+#endif
