@@ -9,7 +9,7 @@
 
 int tcpCli = -1;
 static const char *TAGLOG = "LOG";
-
+static char log_cli_ip_addr[32] = {0};
 //------------------------------------------------------------------------------------------------------------
 int get_socket_error_code(int socket)
 {
@@ -125,7 +125,7 @@ void net_log_task(void *arg)
 {
 total_task++;
 
-int srv = -1, res = 0;
+int srv = -1, res = 0, dl = 0;
 struct sockaddr_in client_addr;
 unsigned int socklen = sizeof(client_addr);
 char stx[256];
@@ -144,13 +144,20 @@ char stx[256];
         while (!restart_flag) {
             tcpCli = accept(srv, (struct sockaddr*)&client_addr, &socklen);
             if (tcpCli >= 0) {
+                strcpy(log_cli_ip_addr, (char *)inet_ntoa(client_addr.sin_addr));
                 sprintf(stx, "New log_client %s:%u (soc=%u) online | FreeMem %u\n",
-                           (char *)inet_ntoa(client_addr.sin_addr),
+                           log_cli_ip_addr,
                            htons(client_addr.sin_port),
                            tcpCli,
                            xPortGetFreeHeapSize());
                 fcntl(tcpCli, F_SETFL, (fcntl(tcpCli, F_GETFL, 0)) | O_NONBLOCK);
                 print_msg(TAGLOG, NULL, stx, 1);
+                ssd1306_clear_line(7);
+                dl = sprintf(stx, "LOG client adr:");
+                ssd1306_text_xy(stx, ssd1306_calcx(dl), 7);
+                ssd1306_clear_line(8);
+                dl = strlen(log_cli_ip_addr);
+                ssd1306_text_xy(log_cli_ip_addr, ssd1306_calcx(dl), 8);
                 while (res >= 0) {
                     res = sendMsg(&tcpCli);
                     vTaskDelay(100 / portTICK_PERIOD_MS);
@@ -158,6 +165,8 @@ char stx[256];
                 res = 0;
                 sprintf(stx, "Closed connection. Wait new tcp client... | FreeMem %u\n", xPortGetFreeHeapSize());
                 print_msg(TAGLOG, NULL, stx, 1);
+                memset(log_cli_ip_addr, 0, sizeof(log_cli_ip_addr));
+                ssd1306_clear_line(7); ssd1306_clear_line(8);
             }
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }

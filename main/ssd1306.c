@@ -263,6 +263,7 @@ void ssd1306_clear_line(uint8_t cy)
 i2c_cmd_handle_t cmd;
 uint8_t zero[128] = {0};
 
+    cy--;
     cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
 

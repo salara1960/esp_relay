@@ -553,6 +553,21 @@ void app_main()
 
 //******************************************************************************************************
 
+#ifdef SET_SSD1306
+    i2c_ssd1306_init();
+
+    ssd1306_on(false);
+    vTaskDelay(500 / portTICK_RATE_MS);
+
+    esp_err_t ssd_ok = ssd1306_init();
+    if (ssd_ok == ESP_OK) ssd1306_pattern();
+    //ssd1306_invert();
+    ssd1306_clear();
+
+    scr_ini_done = true;
+#endif
+
+
 #ifdef SET_NET_LOG
     msgq = xQueueCreate(8, sizeof(s_net_msg));//create msg queue
 
@@ -577,7 +592,7 @@ void app_main()
 #endif
 
 #ifdef SET_SSD1306
-    i2c_ssd1306_init();
+/*    i2c_ssd1306_init();
 
     ssd1306_on(false);
     vTaskDelay(500 / portTICK_RATE_MS);
@@ -588,7 +603,7 @@ void app_main()
     ssd1306_clear();
 
     scr_ini_done = true;
-
+*/
     char stk[128] = {0};
     struct tm *dtimka;
     int tu, tn;
