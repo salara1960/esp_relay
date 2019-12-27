@@ -341,7 +341,7 @@ s_tls_flags flags = {
                                 free(evt_ack.cmd);
                                 evt_ack.cmd = NULL;
                                 //
-                                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ipaddr\":\"%s\",\"Answer\":\"%s\"}\r\n",
+                                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ip\":\"%s\",\"Answer\":\"%s\"}\r\n",
                                                     cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr, stk);
                                 //
                                 wait_ack = 0;
@@ -353,7 +353,7 @@ s_tls_flags flags = {
                             }
                         } else if (check_tmr(wait_ack)) {
                             wait_ack = 0;
-                            len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ipaddr\":\"%s\",\"Answer\":\"Timeout\"}\r\n",
+                            len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ip\":\"%s\",\"Answer\":\"Timeout\"}\r\n",
                                                 cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
 #ifdef SET_TIMEOUT60
                             wait_time = time(NULL);
@@ -363,11 +363,11 @@ s_tls_flags flags = {
                         }
                     }
                 } else {
-                    len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ipaddr\":\"%s\"}\r\n",
+                    len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ip\":\"%s\"}\r\n",
                              cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
                 }
 #else
-                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ipaddr\":\"%s\"}\r\n",
+                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ip\":\"%s\"}\r\n",
                              cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
 #endif
             } else len = sprintf(tbuf, "{\"status\":\"You are NOT auth. client, bye\"}\r\n");

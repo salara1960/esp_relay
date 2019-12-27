@@ -402,7 +402,7 @@ void app_main()
 
     vTaskDelay(1500 / portTICK_RATE_MS);
 
-    ets_printf("\nAppication version %s | SDK Version %s | FreeMem %u\n", Version, esp_get_idf_version(), xPortGetFreeHeapSize());
+    ets_printf("\nApp version %s | SDK Version %s | FreeMem %u\n", Version, esp_get_idf_version(), xPortGetFreeHeapSize());
 
     esp_err_t err = nvs_flash_init();
     if (err != ESP_OK) {
@@ -447,7 +447,7 @@ void app_main()
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
 
     ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, 100000));//100000 us = 100 ms
-    ets_printf("[%s] Started timer with period 1 ms, time since boot: %lld/%llu\n",
+    ets_printf("[%s] Started timer with period 100 ms, time since boot: %lld/%llu\n",
                TAGT, esp_timer_get_time(), get_varta() * 100);
     //--------------------------------------------------------
 

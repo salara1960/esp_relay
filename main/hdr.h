@@ -12,5 +12,5 @@
 #endif
 
 #ifdef SET_SERIAL
-    #undef SET_SELECT_MODE
+//    #define SET_SELECT_MODE
 #endif

@@ -91,6 +91,24 @@ char *ret = NULL, *val = NULL;
     return ret;
 }
 //-----------------------------------------------------------------------------------------
+int uartRXD(int dev, char *buf, int len)
+{
+#ifdef SET_SELECT_MODE
+    return (read(dev, buf, len));
+#else
+    return (uart_read_bytes(dev, (uint8_t *)buf, len, TIME_READ));
+#endif
+}
+//-----------------------------------------------------------------------------------------
+int uartTXD(int dev, const char *buf, int len)
+{
+#ifdef SET_SELECT_MODE
+    return (write(dev, buf, len));
+#else
+    return (uart_write_bytes(dev, buf, len));
+#endif
+}
+//-----------------------------------------------------------------------------------------
 void serial_task(void *arg)
 {
 serial_start = 1;
@@ -112,20 +130,20 @@ char *us = NULL;
     if (data) {
 
 #ifdef SET_SELECT_MODE
-        int fd = -1;
-        if ((fd = open("/dev/uart/2", O_RDWR)) == -1) {
+        int dev = -1;
+        if ((dev = open("/dev/uart/2", O_RDWR)) == -1) {
             ESP_LOGE(TAGUS, "Cannot open UART. OutOfJob !\n");
             vTaskDelay(500 / portTICK_PERIOD_MS);
             out = 1;
         }
-
         fd_set rfds;
-        char cha;
         struct timeval tv = {
             .tv_sec  = 0,
             .tv_usec = 10000
         };
         int resa = 0;
+#else
+        int dev = unum;
 #endif
 
         int uk = 0, tmp = 0, recv = 0, rdy = 0;
@@ -142,11 +160,7 @@ char *us = NULL;
                     free(evt.cmd);
                     evt.cmd = NULL;
                     if (dl > 2) {
-#ifdef SET_SELECT_MODE
-                        if (write(fd, stk, dl) != dl) {
-#else
-                        if (uart_write_bytes(unum, stk, dl) != dl) {
-#endif
+                        if (uartTXD(dev, stk, dl) != dl) {
                           sprintf(stx, "[%u] Error Send(%d) : %s", ++txc, dl, stk);
                         } else {
                             wait_ack = 1;
@@ -158,13 +172,13 @@ char *us = NULL;
             }
 #ifdef SET_SELECT_MODE
             FD_ZERO(&rfds);
-            FD_SET(fd, &rfds);
-            resa = select(fd + 1, &rfds, NULL, NULL, &tv);
+            FD_SET(dev, &rfds);
+            resa = select(dev + 1, &rfds, NULL, NULL, &tv);
             if (resa > 0) {
-                if (FD_ISSET(fd, &rfds)) {
-                    tmp = read(fd, &cha, 1);
+                if (FD_ISSET(dev, &rfds)) {
+#endif
+                    tmp = uartRXD(dev, data + uk, 1);
                     if (tmp > 0) {
-                        *(data + uk) = cha;
                         recv += tmp;
                         uk   += tmp;
                         if ((us = strchr(data, '\n')) != NULL) {
@@ -176,21 +190,8 @@ char *us = NULL;
                             } else rdy = 1;
                         } else if (recv >= buf_len - 1) rdy = 1;
                     }
+#ifdef SET_SELECT_MODE
                 }
-            }
-#else
-            tmp = uart_read_bytes(unum, (uint8_t *)(data + uk), 1, TIME_READ);//5 msec
-            if (tmp > 0) {
-                recv += tmp;
-                uk   += tmp;
-                if ((us = strchr(data, '\n')) != NULL) {
-                    *us = '\0';
-                    recv--;
-                    if (!recv) {
-                        memset(data, 0, buf_len);
-                        uk = tmp = 0;
-                    } else rdy = 1;
-                } else if (recv >= buf_len - 1) rdy = 1;
             }
 #endif
             if (rdy) {
@@ -214,7 +215,7 @@ char *us = NULL;
             }
         }//while(!out)
 #ifdef SET_SELECT_MODE
-        if (fd > 0) close(fd);
+        if (dev > 0) close(dev);
 #endif
         free(data);
     }
