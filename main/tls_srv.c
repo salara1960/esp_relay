@@ -171,21 +171,19 @@ s_tls_flags flags = {
 
         mbedtls_net_init(&server_ctx);
         mbedtls_net_init(&client_ctx);
-        if (setTimeOK) {
-            print_msg(TAGTLS, NULL, "Wait new connection...\n", 1);
-        } else {
-            ets_printf("[%s] Wait new connection...\n", TAGTLS);
-        }
+        print_msg(TAGTLS, NULL, "Wait new connection...\n", 1);
         // Bind
         ret = mbedtls_net_bind(&server_ctx, NULL, str_tls_port, MBEDTLS_NET_PROTO_TCP);
         if (ret) {
-            ESP_LOGE(TAGTLS," failed ! mbedtls_net_bind returned %d", ret);
+            sprintf(stx, " failed ! mbedtls_net_bind returned %d\n", ret);
+            print_msg(TAGTLS, NULL, stx, 1);
             err = ret;
             goto exit;
         }
         ret = mbedtls_net_set_nonblock(&server_ctx);
         if (ret) {
-            ESP_LOGE(TAGTLS,"mbedtls_net_set_nonblock for server returned %d", ret);
+            sprintf(stx, "mbedtls_net_set_nonblock for server returned %d\n", ret);
+            print_msg(TAGTLS, NULL, stx, 1);
         }
 
         // Accept
@@ -199,7 +197,7 @@ s_tls_flags flags = {
             } else vTaskDelay(250 / portTICK_RATE_MS);//500//1000
         }
         if (ret) {
-            ESP_LOGE(TAGTLS," Failed to accept connection. Restarting.");
+            print_msg(TAGTLS, NULL, " Failed to accept connection. Restarting.\n", 1);
             mbedtls_net_free(&client_ctx);
             mbedtls_net_free(&server_ctx);
             continue;
@@ -214,7 +212,8 @@ s_tls_flags flags = {
         // Handshake
         while ((ret = mbedtls_ssl_handshake(&ssl)) != 0) {
             if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-                ESP_LOGE(TAGTLS," failed ! mbedtls_ssl_handshake returned -0x%x", -ret);
+                sprintf(stx, " failed ! mbedtls_ssl_handshake returned -0x%x\n", -ret);
+                print_msg(TAGTLS, NULL, stx, 1);
                 err = ret;
                 goto exit;
             }
@@ -235,7 +234,8 @@ s_tls_flags flags = {
                 len = sprintf(ts,"{\"ts\":%u}\r\n", (uint32_t)cur_time);
                 while ((ret = mbedtls_ssl_write(&ssl, (unsigned char *)ts, len)) <= 0) {
                     if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-                        ESP_LOGE(TAGTLS," failed ! mbedtls_ssl_write returned %d", ret);
+                        sprintf(stx, " failed ! mbedtls_ssl_write returned %d\n", ret);
+                        print_msg(TAGTLS, NULL, stx, 1);
                         err = ret;
                         break;
                     }
@@ -280,7 +280,7 @@ s_tls_flags flags = {
                         if (evt.cmd) {
                             if (serial_start) {
                                 if (xQueueSend(cmdq, (void *)&evt, (TickType_t)0) != pdPASS) {
-                                    ESP_LOGE(TAGUS,"Error while sending to cmdq");
+                                    print_msg(TAGTLS, NULL, "Error while sending to cmd_queue\n", 1);
                                     free(evt.cmd);
                                 } else {
                                     if (!wait_ack) wait_ack = get_tmr(wait_ack_def);
@@ -341,7 +341,7 @@ s_tls_flags flags = {
                                 free(evt_ack.cmd);
                                 evt_ack.cmd = NULL;
                                 //
-                                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ip\":\"%s\",\"Answer\":\"%s\"}\r\n",
+                                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"cli\":\"%s\",\"Answer\":\"%s\"}\r\n",
                                                     cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr, stk);
                                 //
                                 wait_ack = 0;
@@ -353,7 +353,7 @@ s_tls_flags flags = {
                             }
                         } else if (check_tmr(wait_ack)) {
                             wait_ack = 0;
-                            len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ip\":\"%s\",\"Answer\":\"Timeout\"}\r\n",
+                            len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"cli\":\"%s\",\"Answer\":\"Timeout\"}\r\n",
                                                 cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
 #ifdef SET_TIMEOUT60
                             wait_time = time(NULL);
@@ -363,11 +363,11 @@ s_tls_flags flags = {
                         }
                     }
                 } else {
-                    len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ip\":\"%s\"}\r\n",
+                    len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"cli\":\"%s\"}\r\n",
                              cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
                 }
 #else
-                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"ip\":\"%s\"}\r\n",
+                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"cli\":\"%s\"}\r\n",
                              cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
 #endif
             } else len = sprintf(tbuf, "{\"status\":\"You are NOT auth. client, bye\"}\r\n");
@@ -398,9 +398,10 @@ exit:
         mbedtls_net_free(&server_ctx);
 
         if (err) {
-            memset(stx, 0, BUF_SIZE);
-            mbedtls_strerror(err, stx, BUF_SIZE-1);
-            ESP_LOGE(TAGTLS,"Last error %d  (%s)", err, stx);
+            memset(hash_str, 0, sizeof(hash_str));
+            mbedtls_strerror(err, hash_str, sizeof(hash_str) - 1);
+            sprintf(stx, "Last error %d  (%s)\n", err, hash_str);
+            print_msg(TAGTLS, NULL, stx, 1);
             err = 0;
         }
         if (eot) break;

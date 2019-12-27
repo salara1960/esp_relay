@@ -179,8 +179,6 @@ typedef struct {
 #pragma pack(pop)
 
 
-extern uint8_t setTimeOK;
-
 extern uint32_t cli_id;
 
 extern char work_ssid[wifi_param_len];

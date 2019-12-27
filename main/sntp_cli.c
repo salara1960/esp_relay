@@ -11,7 +11,6 @@ void sntp_task(void *arg)
 {
 sntp_start = 1;
 total_task++;
-setTimeOK = 0;
 
 
     ets_printf("%s[%s] Start sntp_task | FreeMem %u%s\n", START_COLOR, TAGS, xPortGetFreeHeapSize(), STOP_COLOR);
@@ -47,7 +46,6 @@ setTimeOK = 0;
             char strftime_buf[64] = {0};
             strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
             ets_printf("%s[%s] The current date/time is: %s %s%s\n", GREEN_COLOR, TAGS, strftime_buf, time_zone, STOP_COLOR);
-            setTimeOK = 1;
         } else {
             ESP_LOGE(TAGS, "Error getting date/time from srv '%s %s'", sntp_server, time_zone);
         }

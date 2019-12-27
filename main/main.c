@@ -7,8 +7,6 @@
 
 uint8_t restart_flag = 0;
 
-uint8_t setTimeOK = 0;
-
 uint8_t total_task = 0;
 uint8_t last_cmd = 255;
 
@@ -117,13 +115,13 @@ void print_msg(const char *tag, const char *tpc, const char *buf, uint8_t with)
             struct tm *ctimka;
             time_t it_ct = time(NULL);
             ctimka = localtime(&it_ct);
-            sprintf(st, "%02d.%02d %02d:%02d:%02d | ",
+            sprintf(st, "%02d.%02d %02d:%02d:%02d ",
                         ctimka->tm_mday, ctimka->tm_mon + 1,
                         ctimka->tm_hour, ctimka->tm_min, ctimka->tm_sec);
         }
-        sprintf(st+strlen(st), "%s", tag);
-        if (tpc != NULL) sprintf(st+strlen(st), " topic '%s'", tpc);
-        sprintf(st+strlen(st), " : %s", buf);
+        sprintf(st+strlen(st), "[%s", tag);
+        if (tpc != NULL) sprintf(st+strlen(st), ":%s", tpc);
+        sprintf(st+strlen(st), "] %s", buf);
         if (st[strlen(st) - 1] != '\n') strcat(st, "\n");
         printf(st);
 #ifdef SET_NET_LOG
