@@ -4,6 +4,7 @@
 
 #include "main.h"
 //----------------------------------------------------------------------------------------
+uint8_t setDateTimeOK = 0;
 const char *TAGS = "NTP";
 uint8_t sntp_start = 0;
 //----------------------------------------------------------------------------------------
@@ -46,6 +47,7 @@ total_task++;
             char strftime_buf[64] = {0};
             strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
             ets_printf("%s[%s] The current date/time is: %s %s%s\n", GREEN_COLOR, TAGS, strftime_buf, time_zone, STOP_COLOR);
+            setDateTimeOK = 1;
         } else {
             ESP_LOGE(TAGS, "Error getting date/time from srv '%s %s'", sntp_server, time_zone);
         }

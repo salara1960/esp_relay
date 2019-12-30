@@ -8,6 +8,7 @@
     #include <sys/time.h>
     #include "esp_sntp.h"
 
+    extern uint8_t setDateTimeOK;
     extern const char *TAGS;
     extern uint8_t sntp_start;
     extern void sntp_task(void *arg);

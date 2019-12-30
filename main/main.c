@@ -504,10 +504,10 @@ void app_main()
             save_param(PARAM_WMODE_NAME, (void *)&wmode, sizeof(uint8_t));
         }
     }
-/* Set STA mode !!! */
+/* Set STA mode !!!
     wmode = WIFI_MODE_STA;
     save_param(PARAM_WMODE_NAME, (void *)&wmode, sizeof(uint8_t));
-/**/
+*/
     ets_printf("[%s] WIFI_MODE (%d): %s\n", TAGT, wmode, wmode_name[wmode]);
 
 
@@ -592,18 +592,6 @@ void app_main()
 #endif
 
 #ifdef SET_SSD1306
-/*    i2c_ssd1306_init();
-
-    ssd1306_on(false);
-    vTaskDelay(500 / portTICK_RATE_MS);
-
-    esp_err_t ssd_ok = ssd1306_init();
-    if (ssd_ok == ESP_OK) ssd1306_pattern();
-    //ssd1306_invert();
-    ssd1306_clear();
-
-    scr_ini_done = true;
-*/
     char stk[128] = {0};
     struct tm *dtimka;
     int tu, tn;
@@ -731,7 +719,6 @@ void app_main()
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_deinit());
 
-    //save_param(PARAM_WMODE_NAME, (void *)&wmode, sizeof(uint8_t));
 
     esp_restart();
 

@@ -103,7 +103,7 @@ s_tls_flags flags = {
 
     sprintf(str_tls_port,"%u", *(uint16_t *)arg);
 
-    ets_printf("%s[%s] TLS server task starting...(port=%s) | FreeMem=%u%s\n", START_COLOR, TAGTLS, str_tls_port, xPortGetFreeHeapSize(), STOP_COLOR);
+    ets_printf("[%s] TLS server task starting...(port=%s) | FreeMem=%u\n", TAGTLS, str_tls_port, xPortGetFreeHeapSize());
 
     buf = (char *)calloc(1, BUF_SIZE);
     if (buf) stx = (char *)calloc(1, BUF_SIZE);
@@ -171,7 +171,11 @@ s_tls_flags flags = {
 
         mbedtls_net_init(&server_ctx);
         mbedtls_net_init(&client_ctx);
-        print_msg(TAGTLS, NULL, "Wait new connection...\n", 1);
+        if (setDateTimeOK)
+            print_msg(TAGTLS, NULL, "Wait new connection...\n", 1);
+        else
+            ets_printf("[%s] Wait new connection...\n", TAGTLS);
+
         // Bind
         ret = mbedtls_net_bind(&server_ctx, NULL, str_tls_port, MBEDTLS_NET_PROTO_TCP);
         if (ret) {
@@ -206,7 +210,6 @@ s_tls_flags flags = {
         strcpy(tls_cli_ip_addr, (char *)inet_ntoa(peer_addr.sin_addr));
         sprintf(stx, "New client %s:%u online (sock=%d)\n", tls_cli_ip_addr, htons(peer_addr.sin_port) , client_ctx.fd);
         print_msg(TAGTLS, NULL, stx, 1);
-
         mbedtls_ssl_set_bio(&ssl, &client_ctx, mbedtls_net_send, NULL, mbedtls_net_recv_timeout);//<- blocking I/O, f_recv == NULL, f_recv_timout != NULL
 
         // Handshake
@@ -419,7 +422,7 @@ quit1:
     if (stx) free(stx);
     if (buf) free(buf);
 
-    ets_printf("%s[%s] TLS server task stop | FreeMem=%u%s\n", START_COLOR, TAGTLS, xPortGetFreeHeapSize(), STOP_COLOR);
+    ets_printf("[%s] TLS server task stop | FreeMem=%u\n", TAGTLS, xPortGetFreeHeapSize());
     if (total_task) total_task--;
     tls_start = 0;
     vTaskDelete(NULL);
