@@ -44,10 +44,10 @@ App version 0.7 | SDK Version v4.1-dev-1572-g30372f5 | FreeMem 280328
 [VFS] DEVICE_ID='C405EF90'
 [VFS] SNTP_SERVER '2.ru.pool.ntp.org' TIME_ZONE 'EET-2'
 [VFS] WIFI_MODE (1): STA
-[VFS] WIFI_STA_PARAM: 'armLinux:armLinux32'
+[VFS] WIFI_STA_PARAM: 'ssid:password'
 [VFS] TLS_PORT: 4545
-[WIFI] WIFI_MODE - STA: 'armLinux':'armLinux32'
-[WIFI] Connected to AP 'armLinux' auth(3):'AUTH_WPA2_PSK' chan:2 rssi:-27
+[WIFI] WIFI_MODE - STA: 'ssid':'password'
+[WIFI] Connected to AP 'ssid' auth(3):'AUTH_WPA2_PSK' chan:2 rssi:-27
 [WIFI] Local ip_addr : 192.168.0.100
 [LOG] Start NetLogServer task (port=8008)| FreeMem 239500
 [LOG] Wait new log_client... | FreeMem 239052
