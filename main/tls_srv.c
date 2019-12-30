@@ -98,6 +98,8 @@ s_tls_flags flags = {
     .none = 0,
 };
 
+float vcc = (float)get_vcc(); vcc /= 1000;
+float tChip = get_tChip();
 
     xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
 
@@ -328,6 +330,10 @@ s_tls_flags flags = {
             // Write
             memset(tbuf, 0, BUF_SIZE);
             if (auth) {
+                //
+                vcc = (float)get_vcc(); vcc /= 1000;
+                tChip = get_tChip();
+                //
                 vTaskDelay(100 / portTICK_RATE_MS);
 #ifdef SET_SERIAL
                 if (serial_start) {
@@ -344,8 +350,8 @@ s_tls_flags flags = {
                                 free(evt_ack.cmd);
                                 evt_ack.cmd = NULL;
                                 //
-                                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"cli\":\"%s\",\"Answer\":\"%s\"}\r\n",
-                                                    cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr, stk);
+                                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"cli\":\"%s\",\"Vcc\":%.3f,\"Temp\":%.2f,\"Answer\":\"%s\"}\r\n",
+                                                    cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr, vcc, tChip, stk);
                                 //
                                 wait_ack = 0;
 #ifdef SET_TIMEOUT60
@@ -356,8 +362,8 @@ s_tls_flags flags = {
                             }
                         } else if (check_tmr(wait_ack)) {
                             wait_ack = 0;
-                            len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"cli\":\"%s\",\"Answer\":\"Timeout\"}\r\n",
-                                                cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
+                            len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"cli\":\"%s\",\"Vcc\":%.3f,\"Temp\":%.2f,\"Answer\":\"Timeout\"}\r\n",
+                                                cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr, vcc, tChip);
 #ifdef SET_TIMEOUT60
                             wait_time = time(NULL);
 #endif
@@ -366,12 +372,12 @@ s_tls_flags flags = {
                         }
                     }
                 } else {
-                    len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"cli\":\"%s\"}\r\n",
-                             cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
+                    len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"cli\":\"%s\",\"Vcc\":%.3f,\"Temp\":%.2f}\r\n",
+                             cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr, vcc, tChip);
                 }
 #else
-                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"cli\":\"%s\"}\r\n",
-                             cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr);
+                len = sprintf(tbuf, "{\"DevID\":\"%08X\",\"Time\":%u,\"FreeMem\":%u,\"cli\":\"%s\",\"Vcc\":%.3f,\"Temp\":%.2f}\r\n",
+                             cli_id, (uint32_t)time(NULL), xPortGetFreeHeapSize(), tls_cli_ip_addr, vcc, tChip);
 #endif
             } else len = sprintf(tbuf, "{\"status\":\"You are NOT auth. client, bye\"}\r\n");
 

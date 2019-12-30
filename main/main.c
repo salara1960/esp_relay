@@ -392,6 +392,16 @@ nvs_handle mhd;
 
     return err;
 }
+//--------------------------------------------------------------------------------------------------
+uint32_t get_vcc()
+{
+    return ((uint32_t)(adc1_get_raw(ADC1_TEST_CHANNEL) * 0.8));
+}
+//--------------------------------------------------------------------------------------------------
+float get_tChip()
+{
+    return (((temprature_sens_read() - 40) - 32) * 5/9);
+}
 //************************************************************************************************************
 void app_main()
 {
@@ -544,6 +554,15 @@ void app_main()
     }
     ets_printf("[%s] TLS_PORT: %u\n", TAGT, tls_port);
 #endif
+
+
+//******************************************************************************************************
+//ADC_ATTEN_0db   = 0,  /*!<The input voltage of ADC will be reduced to about 1/1 */
+//ADC_ATTEN_2_5db = 1,  /*!<The input voltage of ADC will be reduced to about 1/1.34 */
+//ADC_ATTEN_6db   = 2,  /*!<The input voltage of ADC will be reduced to about 1/2 */
+//ADC_ATTEN_11db  = 3,  /*!<The input voltage of ADC will be reduced to about 1/3.6*/
+    adc1_config_width(ADC_WIDTH_12Bit);
+    adc1_config_channel_atten(ADC1_TEST_CHANNEL, ADC_ATTEN_11db);
 
 
 //******************************************************************************************************

@@ -203,6 +203,9 @@ extern FILE *flog;
 extern uint8_t tls_hangup;
 extern uint32_t tls_client_ip;
 
+extern uint8_t temprature_sens_read();
+extern uint32_t get_vcc();
+extern float get_tChip();
 
 extern uint32_t get_tmr(uint32_t tm);
 extern int check_tmr(uint32_t tm);
