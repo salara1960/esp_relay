@@ -103,30 +103,33 @@ int check_tmr(uint32_t tm)
     return (get_varta() >= tm ? 1 : 0);
 }
 //--------------------------------------------------------------------------------------
-void print_msg(const char *tag, const char *tpc, const char *buf, uint8_t with)
+void print_msg(uint8_t with, const char *tag, const char *fmt, ...)
 {
-    if (!tag || !buf) return;
+size_t len = BUF_SIZE;//1024
 
-    int len = strlen(tag) + strlen(buf) + 48;
-    if (tpc) len += strlen(tpc);
     char *st = (char *)calloc(1, len);
     if (st) {
+        int dl = 0, sz;
+        va_list args;
         if (with) {
             struct tm *ctimka;
             time_t it_ct = time(NULL);
             ctimka = localtime(&it_ct);
-            sprintf(st, "%02d.%02d %02d:%02d:%02d ",
-                        ctimka->tm_mday, ctimka->tm_mon + 1,
-                        ctimka->tm_hour, ctimka->tm_min, ctimka->tm_sec);
+            dl = sprintf(st, "%02d.%02d %02d:%02d:%02d ",
+                             ctimka->tm_mday,ctimka->tm_mon + 1,ctimka->tm_hour,ctimka->tm_min,ctimka->tm_sec);
         }
-        sprintf(st+strlen(st), "[%s", tag);
-        if (tpc != NULL) sprintf(st+strlen(st), ":%s", tpc);
-        sprintf(st+strlen(st), "] %s", buf);
-        if (st[strlen(st) - 1] != '\n') strcat(st, "\n");
+        if (tag) dl += sprintf(st+strlen(st), "[%s] ", tag);
+        sz = dl;
+        va_start(args, fmt);
+        sz += vsnprintf(st + dl, len - dl, fmt, args);
+
         printf(st);
+
 #ifdef SET_NET_LOG
         if (tcpCli >= 0) putMsg(st);
 #endif
+
+        va_end(args);
         free(st);
     }
 }
@@ -261,7 +264,7 @@ bool loop = true;
                         if (err != ERR_OK) {
                             ESP_LOGE(TAGU,"Sending '%.*s' error=%d '%s'", len, (char *)data, (int)err, lwip_strerr(err));
                         } else {
-                            print_msg(TAGU, NULL, line, 1);
+                            print_msg(1, TAGU, "%s", line);
                             cnt++;
                         }
                     }

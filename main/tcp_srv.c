@@ -27,12 +27,7 @@ void show_socket_error_reason(int socket)
 {
 int err = get_socket_error_code(socket);
 
-    char *stx = (char *)calloc(1, strlen(strerror(err)) + 64);
-    if (stx) {
-        sprintf(stx, "Socket %d error %d '%s'\n", socket, err, strerror(err));
-        print_msg(TAGLOG, NULL, stx, 1);
-        free(stx);
-    }
+    print_msg(1, TAGLOG, "Socket %d error %d '%s'\n", socket, err, strerror(err));
 }
 //------------------------------------------------------------------------------------------------------------
 void net_log_close(int *cli)
@@ -128,7 +123,7 @@ total_task++;
 int srv = -1, res = 0, dl = 0;
 struct sockaddr_in client_addr;
 unsigned int socklen = sizeof(client_addr);
-char stx[256];
+char stx[64];
 
     uint16_t tp = *(uint16_t *)arg;
 
@@ -144,14 +139,13 @@ char stx[256];
         while (!restart_flag) {
             tcpCli = accept(srv, (struct sockaddr*)&client_addr, &socklen);
             if (tcpCli >= 0) {
+                fcntl(tcpCli, F_SETFL, (fcntl(tcpCli, F_GETFL, 0)) | O_NONBLOCK);
                 strcpy(log_cli_ip_addr, (char *)inet_ntoa(client_addr.sin_addr));
-                sprintf(stx, "New log_client %s:%u (soc=%u) online | FreeMem %u\n",
+                print_msg(1, TAGLOG, "New log_client %s:%u (soc=%u) online | FreeMem %u\n",
                            log_cli_ip_addr,
                            htons(client_addr.sin_port),
                            tcpCli,
                            xPortGetFreeHeapSize());
-                fcntl(tcpCli, F_SETFL, (fcntl(tcpCli, F_GETFL, 0)) | O_NONBLOCK);
-                print_msg(TAGLOG, NULL, stx, 1);
                 ssd1306_clear_line(7);
                 dl = sprintf(stx, "LOG client adr:");
                 ssd1306_text_xy(stx, ssd1306_calcx(dl), 7);
@@ -163,8 +157,7 @@ char stx[256];
                     vTaskDelay(100 / portTICK_PERIOD_MS);
                 }
                 res = 0;
-                sprintf(stx, "Closed connection. Wait new tcp client... | FreeMem %u\n", xPortGetFreeHeapSize());
-                print_msg(TAGLOG, NULL, stx, 1);
+                print_msg(1, TAGLOG, "Closed connection. Wait new tcp client... | FreeMem %u\n", xPortGetFreeHeapSize());
                 memset(log_cli_ip_addr, 0, sizeof(log_cli_ip_addr));
                 ssd1306_clear_line(7); ssd1306_clear_line(8);
             }

@@ -116,7 +116,6 @@ total_task++;
 uint8_t out = 0, wait_ack = 0;
 size_t buf_len = BSIZE;
 char stk[128];
-char stx[BSIZE];
 s_cmd evt = {NULL};
 s_cmd evt_ack = {NULL};
 uint32_t rxc = 0, txc = 0;
@@ -161,12 +160,11 @@ char *us = NULL;
                     evt.cmd = NULL;
                     if (dl > 2) {
                         if (uartTXD(dev, stk, dl) != dl) {
-                          sprintf(stx, "[%u] Error Send(%d) : %s", ++txc, dl, stk);
+                          print_msg(1, TAGUS, "[%u] Error Send(%d) : %s\n", ++txc, dl, stk);
                         } else {
                             wait_ack = 1;
-                            sprintf(stx, "[%u] Send(%d) : %s", ++txc, dl, stk);
+                            print_msg(1, TAGUS, "[%u] Send(%d) : %s\n", ++txc, dl, stk);
                         }
-                        print_msg(TAGUS, NULL, stx, 1);
                     }
                 }
             }
@@ -197,8 +195,7 @@ char *us = NULL;
             if (rdy) {
                 recv = strlen(data);
                 if (*(data + recv - 1) == '\r') { *(data + recv - 1) = '\0'; recv--; }
-                sprintf(stx, "[%u] Recv(%d) : '%s'\n", ++rxc, recv, data);
-                print_msg(TAGUS, NULL, stx, 1);
+                print_msg(1, TAGUS, "[%u] Recv(%d) : '%s'\n", ++rxc, recv, data);
                 if ((recv > 0) && wait_ack) {
                     evt_ack.cmd = (char *)calloc(1, recv + 1);
                     if (evt_ack.cmd) {

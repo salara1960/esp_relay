@@ -51,9 +51,7 @@ time_t ret = time(NULL);
 #endif
         free(ts);
         for (uint8_t i = 0; i < hash_len; i++) sprintf(out+strlen(out),"%02X", hash[i]);
-        char stx[128];
-        sprintf(stx, "%s hash=%s\n", mark, out);
-        print_msg(TAGTLS, NULL, stx, 1);
+        print_msg(1, TAGTLS, "%s hash=%s\n", mark, out);
     } else ret = 0;
 
     return ret;
@@ -81,7 +79,7 @@ time_t cur_time = 0;
 #ifdef SET_TIMEOUT60
     time_t wait_time = 0;
 #endif
-char *buf = NULL, *stx = NULL, *uk = NULL, *tbuf = NULL;
+char *buf = NULL, *uk = NULL, *tbuf = NULL;
 char ts[64] = {0}, hash_str[256] = {0}, str_tls_port[8] = {0};
 char *auk = NULL;
 #ifdef SET_SERIAL
@@ -108,9 +106,8 @@ float tChip = get_tChip();
     ets_printf("[%s] TLS server task starting...(port=%s) | FreeMem=%u\n", TAGTLS, str_tls_port, xPortGetFreeHeapSize());
 
     buf = (char *)calloc(1, BUF_SIZE);
-    if (buf) stx = (char *)calloc(1, BUF_SIZE);
-    if (stx) tbuf = (char *)calloc(1, BUF_SIZE);
-    if (!buf || !stx || !tbuf) goto quit1;
+    if (buf) tbuf = (char *)calloc(1, BUF_SIZE);
+    if (!buf || !tbuf) goto quit1;
 
     mbedtls_ssl_init(&ssl);
     mbedtls_x509_crt_init(&srvcert);
@@ -174,23 +171,19 @@ float tChip = get_tChip();
         mbedtls_net_init(&server_ctx);
         mbedtls_net_init(&client_ctx);
         if (setDateTimeOK)
-            print_msg(TAGTLS, NULL, "Wait new connection...\n", 1);
+            print_msg(1, TAGTLS, "Wait new connection...\n");
         else
             ets_printf("[%s] Wait new connection...\n", TAGTLS);
 
         // Bind
         ret = mbedtls_net_bind(&server_ctx, NULL, str_tls_port, MBEDTLS_NET_PROTO_TCP);
         if (ret) {
-            sprintf(stx, " failed ! mbedtls_net_bind returned %d\n", ret);
-            print_msg(TAGTLS, NULL, stx, 1);
+            print_msg(1, TAGTLS, " failed ! mbedtls_net_bind returned %d\n", ret);
             err = ret;
             goto exit;
         }
         ret = mbedtls_net_set_nonblock(&server_ctx);
-        if (ret) {
-            sprintf(stx, "mbedtls_net_set_nonblock for server returned %d\n", ret);
-            print_msg(TAGTLS, NULL, stx, 1);
-        }
+        if (ret) print_msg(1, TAGTLS, "mbedtls_net_set_nonblock for server returned %d\n", ret);
 
         // Accept
         ret = MBEDTLS_ERR_SSL_WANT_READ;
@@ -203,22 +196,20 @@ float tChip = get_tChip();
             } else vTaskDelay(250 / portTICK_RATE_MS);//500//1000
         }
         if (ret) {
-            print_msg(TAGTLS, NULL, " Failed to accept connection. Restarting.\n", 1);
+            print_msg(1, TAGTLS, " Failed to accept connection. Restarting.\n");
             mbedtls_net_free(&client_ctx);
             mbedtls_net_free(&server_ctx);
             continue;
         }
         getpeername(client_ctx.fd, (struct sockaddr *)&peer_addr, &peer_addr_len);
         strcpy(tls_cli_ip_addr, (char *)inet_ntoa(peer_addr.sin_addr));
-        sprintf(stx, "New client %s:%u online (sock=%d)\n", tls_cli_ip_addr, htons(peer_addr.sin_port) , client_ctx.fd);
-        print_msg(TAGTLS, NULL, stx, 1);
+        print_msg(1, TAGTLS, "New client %s:%u online (sock=%d)\n", tls_cli_ip_addr, htons(peer_addr.sin_port) , client_ctx.fd);
         mbedtls_ssl_set_bio(&ssl, &client_ctx, mbedtls_net_send, NULL, mbedtls_net_recv_timeout);//<- blocking I/O, f_recv == NULL, f_recv_timout != NULL
 
         // Handshake
         while ((ret = mbedtls_ssl_handshake(&ssl)) != 0) {
             if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-                sprintf(stx, " failed ! mbedtls_ssl_handshake returned -0x%x\n", -ret);
-                print_msg(TAGTLS, NULL, stx, 1);
+                print_msg(1, TAGTLS, " failed ! mbedtls_ssl_handshake returned -0x%x\n", -ret);
                 err = ret;
                 goto exit;
             }
@@ -239,17 +230,15 @@ float tChip = get_tChip();
                 len = sprintf(ts,"{\"ts\":%u}\r\n", (uint32_t)cur_time);
                 while ((ret = mbedtls_ssl_write(&ssl, (unsigned char *)ts, len)) <= 0) {
                     if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-                        sprintf(stx, " failed ! mbedtls_ssl_write returned %d\n", ret);
-                        print_msg(TAGTLS, NULL, stx, 1);
+                        print_msg(1, TAGTLS, " failed ! mbedtls_ssl_write returned %d\n", ret);
                         err = ret;
                         break;
                     }
                 }
-                print_msg(TAGTLS, NULL, ts, 1);
+                print_msg(1, TAGTLS, "%s", ts);
                 flags.first = 0;
             }
             //
-            memset(stx, 0, BUF_SIZE);
             memset(buf, 0, BUF_SIZE);
             memset(tbuf,0, BUF_SIZE);
             len = BUF_SIZE - 1;
@@ -259,8 +248,7 @@ float tChip = get_tChip();
                 wait_time = time(NULL);
 #endif
                 uk = strstr(buf + 2, "\r\n"); if (uk) *uk = '\0';
-                sprintf(stx, "Recv. data (%d bytes) from client:%s\n", rtr, buf);
-                print_msg(TAGTLS, NULL, stx, 1);
+                print_msg(1, TAGTLS, "Recv. data (%d bytes) from client:%s\n", rtr, buf);
                 eot = 0;
                 //-----------------     Check auth    ------------------------------------
                 if (!auth) {
@@ -268,8 +256,7 @@ float tChip = get_tChip();
                     if (auk) {
                         if (!strncmp(auk + 7, hash_str, strlen(hash_str))) {
                             auth = 1;
-                            sprintf(stx,"For client %s access granted !\n", tls_cli_ip_addr);
-                            print_msg(TAGTLS, NULL, stx, 1);
+                            print_msg(1, TAGTLS, "For client %s access granted !\n", tls_cli_ip_addr);
 #ifdef UDP_SEND_BCAST
                             if (udp_start) udp_flag = 0;
 #endif
@@ -285,7 +272,7 @@ float tChip = get_tChip();
                         if (evt.cmd) {
                             if (serial_start) {
                                 if (xQueueSend(cmdq, (void *)&evt, (TickType_t)0) != pdPASS) {
-                                    print_msg(TAGTLS, NULL, "Error while sending to cmd_queue\n", 1);
+                                    print_msg(1, TAGTLS, "Error while sending to cmd_queue\n");
                                     free(evt.cmd);
                                 } else {
                                     if (!wait_ack) wait_ack = get_tmr(wait_ack_def);
@@ -303,8 +290,7 @@ float tChip = get_tChip();
                 //------------------------------------------------------------------------
                 err = 0;
             } else if (!rtr) {
-                sprintf(stx, "Client closed connection (%d)\n", rtr);
-                print_msg(TAGTLS, NULL, stx, 1);
+                print_msg(1, TAGTLS, "Client closed connection (%d)\n", rtr);
                 err = 0;
                 break;
             } else {// rtr < 0  -  no data from client
@@ -313,8 +299,7 @@ float tChip = get_tChip();
                     if (auth) {
 #ifdef SET_TIMEOUT60
                         if ( ((uint32_t)time(NULL) - (uint32_t)wait_time) >= def_idle_count ) {
-                            sprintf(stx, "Timeout...(no data from client %u sec). Server closed connection.\n", def_idle_count);
-                            print_msg(TAGTLS, NULL, stx, 1);
+                            print_msg(1, TAGTLS, "Timeout...(no data from client %u sec). Server closed connection.\n", def_idle_count);
                             break;
                         } else {
 #endif
@@ -389,7 +374,7 @@ float tChip = get_tChip();
                         break;
                     }
                 }
-                print_msg(TAGTLS, NULL, tbuf, 1);
+                print_msg(1, TAGTLS, "%s", tbuf);
             }
             if (!auth || eot) break;
             vTaskDelay(10 / portTICK_RATE_MS);
@@ -409,8 +394,7 @@ exit:
         if (err) {
             memset(hash_str, 0, sizeof(hash_str));
             mbedtls_strerror(err, hash_str, sizeof(hash_str) - 1);
-            sprintf(stx, "Last error %d  (%s)\n", err, hash_str);
-            print_msg(TAGTLS, NULL, stx, 1);
+            print_msg(1, TAGTLS, "Last error %d  (%s)\n", err, hash_str);
             err = 0;
         }
         if (eot) break;
@@ -425,7 +409,6 @@ exit:
 quit1:
 
     if (tbuf) free(tbuf);
-    if (stx) free(stx);
     if (buf) free(buf);
 
     ets_printf("[%s] TLS server task stop | FreeMem=%u\n", TAGTLS, xPortGetFreeHeapSize());

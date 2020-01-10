@@ -14,6 +14,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 #include "freertos/FreeRTOS.h"
 #include <freertos/semphr.h>
@@ -210,7 +211,10 @@ extern float get_tChip();
 extern uint32_t get_tmr(uint32_t tm);
 extern int check_tmr(uint32_t tm);
 
-extern void print_msg(const char *tag, const char *tpc, const char *buf, uint8_t with);
+extern void print_msg(uint8_t with, const char *tag, const char *fmt, ...);
+
+//void print_msg(const char *tag, const char *tpc, const char *buf, uint8_t with);
+
 
 #ifdef SET_NET_LOG
     #include "tcp_srv.h"
