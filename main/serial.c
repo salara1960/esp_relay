@@ -155,15 +155,14 @@ char *us = NULL;
                     vTaskDelay(2 / portTICK_PERIOD_MS);
                     dl = sprintf(stk,"%s", evt.cmd);
                     ssd1306_text_xy(stk, ssd1306_calcx(dl), 5);
-                    dl = sprintf(stk, "%s\r\n", evt.cmd);
-                    free(evt.cmd);
-                    evt.cmd = NULL;
+                    strcat(stk, "\r\n"); dl += 2;
+                    free(evt.cmd); evt.cmd = NULL;
                     if (dl > 2) {
                         if (uartTXD(dev, stk, dl) != dl) {
-                          print_msg(1, TAGUS, "[%u] Error Send(%d) : %s\n", ++txc, dl, stk);
+                          print_msg(1, TAGUS, "[%u] Error Send(%d) : %s", ++txc, dl, stk);
                         } else {
                             wait_ack = 1;
-                            print_msg(1, TAGUS, "[%u] Send(%d) : %s\n", ++txc, dl, stk);
+                            print_msg(1, TAGUS, "[%u] Send(%d) : %s", ++txc, dl, stk);
                         }
                     }
                 }
